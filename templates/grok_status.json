@@ -1,0 +1,14 @@
+{
+  "updated": "YYYY-MM-DD HH:MM TZ",
+  "state": "idle | running | blocked | complete | failed",
+  "job": "short name of the current job",
+  "progress": {
+    "done": 0,
+    "target": null,
+    "unit": "items"
+  },
+  "workers": {},
+  "errors_last_hour": [],
+  "needs_claude": false,
+  "note": ""
+}

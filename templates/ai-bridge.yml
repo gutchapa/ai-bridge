@@ -1,0 +1,42 @@
+# Copy to .github/workflows/ai-bridge.yml in the project repo.
+# Starts Claude whenever Grok pushes a message or status, so nobody has to relay.
+name: AI bridge (Claude)
+
+on:
+  push:
+    paths:
+      - "bridge/grok_to_claude.md"
+      - "bridge/grok_status.json"
+
+# One Claude run per branch at a time; a newer Grok push waits for the current run.
+concurrency:
+  group: ai-bridge-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: write   # push replies to bridge/claude_to_grok.md and code changes
+  issues: write     # open an issue when the user must decide something
+
+jobs:
+  claude:
+    # Claude's own pushes use GITHUB_TOKEN, which never re-triggers workflows; this guards manual pushes too.
+    if: ${{ !startsWith(github.event.head_commit.message, 'claude:') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: anthropics/claude-code-action@v1
+        with:
+          # Use ONE of these two secrets (repo Settings → Secrets and variables → Actions).
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          # claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          prompt: |
+            You are Claude on the AI bridge. Follow bridge/CLAUDE_ROLE.md exactly.
+            Branch: ${{ github.ref_name }}
+            New commits to review: ${{ github.event.before }}..${{ github.sha }}
+          claude_args: >-
+            --max-turns 40
+            --allowedTools "Read,Edit,Write,Glob,Grep,Bash(git *),Bash(gh issue *),Bash(python3 *),Bash(pytest *),Bash(npm test*)"
